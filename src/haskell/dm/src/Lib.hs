@@ -5,38 +5,41 @@ module Lib
 import Data.List
 import Control.Monad
 
+eps = 10**(-7)
+
 -- Tree ADT
 data Tree = Leaf Int | Node Tree Tree | Error deriving Show
 
-argmin :: [Int] -> [Int]
+argmin :: [Double] -> [Int]
 argmin [] = []
 argmin [x] = [0]
 argmin (x:xs) = let
                     (m:ms) = argmin xs
                     min_xs = xs !! m
                 in
-                    if x == min_xs
+                    if abs(x - min_xs) < eps
                         then (map (+ 1) (m:ms)) ++ [0]
-                    else if x < min_xs
+                    else if x - min_xs < -eps
                         then [0]
                     else (map (+ 1) (m:ms))
 
-distMat :: Int -> IO([[Int]],[String])
+distMat :: Int -> IO([[Double]],[String])
 distMat 0 = return ([],[])
 distMat x = do
-    str <- getLine
+    l <- getLine
+    let (name:ws) = words l
     (next_v,next_name) <- distMat (x - 1)
-    let (name:v) = map read $ words str :: [Int]
-    return ((v:next_v),((show name):next_name))
+    let v = map read ws
+    return ((v:next_v),(name:next_name))
 
-dm_vec :: [[Int]] -> Int -> Int -> Int -> Int
+dm_vec :: [[Double]] -> Int -> Int -> Int -> Double
 dm_vec d n x y = ((d !! x) !! (n-1)) + ((d !!y) !! (n-1)) - ((d !! x) !! y)
 
-ind_all :: [Int] -> [Int] -> [Int]
+ind_all :: [Int] -> [b] -> [b]
 ind_all [] _ = []
 ind_all (x:xs) a = ((a !! x):(ind_all xs a))
 
-dm :: [[Int]] -> Int -> [Int] -> IO Tree
+dm :: [[Double]] -> Int -> [Int] -> IO Tree
 dm _ _ [l]          = return (Leaf l)
 dm _ _ [l,r]        = return (Node (Leaf l) (Leaf r))
 dm d n (l:ls)       = do

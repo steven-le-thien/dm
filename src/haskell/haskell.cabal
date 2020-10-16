@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 935b1dd8abb6e9ac375489eb06d92ea92f0745aa15c95c8f598145bc4c749bab
+-- hash: cfd5f61bdccf9b90f4787d47b337df410323281d88461ce121094e499a7fef04
 
 name:           haskell
 version:        0.1.0.0
@@ -26,8 +26,6 @@ source-repository head
   location: https://github.com/githubuser/haskell
 
 library
-  exposed-modules:
-      Lib
   other-modules:
       Paths_haskell
   hs-source-dirs:
@@ -35,7 +33,7 @@ library
   build-depends:
       base >=4.7 && <5
   default-language: Haskell2010
-
+ 
 executable haskell-exe
   main-is: Main.hs
   other-modules:
@@ -46,6 +44,7 @@ executable haskell-exe
   build-depends:
       base >=4.7 && <5
     , haskell
+    , libiserv
   default-language: Haskell2010
 
 test-suite haskell-test

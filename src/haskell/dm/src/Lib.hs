@@ -1,12 +1,14 @@
-module Main where
+module Lib
+    ( distMat, dm, newick
+    ) where
 
-import Lib
-import Control.Arrow
 import Data.List
 import Control.Monad
 
 -- Tree ADT
 data Tree = Leaf Int | Node Int Tree Tree | Error deriving Show
+
+intNode = -1
 
 argmin :: [Int] -> [Int]
 argmin [] = []
@@ -34,8 +36,8 @@ dm_vec d n x y = ((d !! x) !! (n-1)) + ((d !!y) !! (n-1)) - ((d !! x) !! y)
 
 dm :: [[Int]] -> Int -> [Int] -> Tree
 dm _ _ [l]          = Leaf l
-dm _ _ [l,r]        = Node 0 (Leaf l) (Leaf r)
-dm d n (l:ls)       = Node 0 t1 t2
+dm _ _ [l,r]        = Node intNode (Leaf l) (Leaf r)
+dm d n (l:ls)       = Node intNode t1 t2
                         where
                             t1 = dm d n l1
                             t2 = dm d n l2
@@ -43,9 +45,10 @@ dm d n (l:ls)       = Node 0 t1 t2
                             l1 = map (+ 1) (argmin (map (dm_vec d n l) ls))
                             l2 = ((l:ls) \\ l1)
 
-main :: IO()
-main = do
-    nn <- readLn
-    dd <- distMat nn
-    putStrLn (show dd)
-    putStrLn (show (dm dd nn [0..(nn-2)]))
+newick :: String -> String
+newick ('N':'o':'d':'e':xs) = newick xs
+newick ('L':'e':'a':'f':xs) = newick xs
+newick ('(':'-':'1':')':xs) = newick xs
+newick (' ':xs) = newick xs
+newick (x:xs) = x:(newick xs)
+newick "" = ""

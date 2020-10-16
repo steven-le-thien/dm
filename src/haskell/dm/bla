@@ -6,7 +6,7 @@ cabal-version: 1.12
 --
 -- hash: cfd5f61bdccf9b90f4787d47b337df410323281d88461ce121094e499a7fef04
 
-name:           haskell
+name:           dm
 version:        0.1.0.0
 description:    Please see the README on GitHub at <https://github.com/githubuser/haskell#readme>
 homepage:       https://github.com/githubuser/haskell#readme
@@ -27,35 +27,35 @@ source-repository head
 
 library
   other-modules:
-      Paths_haskell
+      Paths_dm
   hs-source-dirs:
       src
   build-depends:
       base >=4.7 && <5
   default-language: Haskell2010
  
-executable haskell-exe
+executable dm-exe
   main-is: Main.hs
   other-modules:
-      Paths_haskell
+      Paths_dm
   hs-source-dirs:
       app
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
-    , haskell
+    , dm
     , libiserv
   default-language: Haskell2010
 
-test-suite haskell-test
+test-suite dm-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      Paths_haskell
+      Paths_dm
   hs-source-dirs:
       test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
-    , haskell
+    , dm
   default-language: Haskell2010

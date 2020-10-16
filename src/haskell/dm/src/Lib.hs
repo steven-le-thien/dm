@@ -45,10 +45,10 @@ dm d n (l:ls)       = Node intNode t1 t2
                             l1 = map (+ 1) (argmin (map (dm_vec d n l) ls))
                             l2 = ((l:ls) \\ l1)
 
-newick :: String -> String
-newick ('N':'o':'d':'e':xs) = newick xs
-newick ('L':'e':'a':'f':xs) = newick xs
-newick ('(':'-':'1':')':xs) = newick xs
-newick (' ':xs) = newick xs
-newick (x:xs) = x:(newick xs)
-newick "" = ""
+newick :: Int -> Tree -> String
+newick n t = let ('(':str) = (newick' t) in "(" ++ (show (n - 1)) ++ "," ++ str ++ ";"
+    where
+        newick' :: Tree->String        
+        newick' (Leaf l)        = show l
+        newick' (Node _ l r)    = "(" ++ (newick' l) ++ "," ++ (newick' r) ++ ")"
+

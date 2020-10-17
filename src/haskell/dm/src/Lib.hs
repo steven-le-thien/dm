@@ -5,7 +5,7 @@ module Lib
 import Data.List
 import Control.Monad
 
-eps = 10**(-7)
+eps = 1
 
 -- Tree ADT
 data Tree = Leaf Int | Node Tree Tree | Error deriving Show
@@ -28,8 +28,8 @@ distMat 0 = return ([],[])
 distMat x = do
     l <- getLine
     let (name:ws) = words l
-    (next_v,next_name) <- distMat (x - 1)
     let v = map read ws
+    (next_v,next_name) <- distMat (x - 1)
     return ((v:next_v),(name:next_name))
 
 dm_vec :: [[Double]] -> Int -> Int -> Int -> Double

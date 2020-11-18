@@ -1,11 +1,12 @@
 module Lib
-    ( distMat, dm, newick
+    ( distMat, dm, newick, randomized_dm
     ) where
 
-import Data.List
+import Data.List 
+import Data.Map 
 import Control.Monad
 
-eps = 1
+eps = 0.0001
 
 -- Tree ADT
 data Tree = Leaf Int | Node Tree Tree | Error deriving Show
@@ -18,17 +19,17 @@ argmin (x:xs) = let
                     min_xs = xs !! m
                 in
                     if abs(x - min_xs) < eps
-                        then (map (+ 1) (m:ms)) ++ [0]
-                    else if x - min_xs < -eps
+                        then (fmap (+ 1) (m:ms)) ++ [0]
+                        else if x - min_xs < -eps
                         then [0]
-                    else (map (+ 1) (m:ms))
+                    else (fmap (+ 1) (m:ms))
 
 distMat :: Int -> IO([[Double]],[String])
 distMat 0 = return ([],[])
 distMat x = do
     l <- getLine
     let (name:ws) = words l
-    let v = map read ws
+    let v = fmap read ws
     (next_v,next_name) <- distMat (x - 1)
     return ((v:next_v),(name:next_name))
 
@@ -39,19 +40,15 @@ ind_all :: [Int] -> [b] -> [b]
 ind_all [] _ = []
 ind_all (x:xs) a = ((a !! x):(ind_all xs a))
 
-dm :: [[Double]] -> Int -> [Int] -> IO Tree
-dm _ _ [l]          = return (Leaf l)
-dm _ _ [l,r]        = return (Node (Leaf l) (Leaf r))
-dm d n (l:ls)       = do
-                        t1 <- dm d n l1
-                        t2 <- dm d n l2
-                        return (Node t1 t2)
-                            where
-                            --t1 <- dm d n l1
-                            --t2 <- dm d n l2
+dm :: [[Double]] -> Int -> [Int] -> Tree 
+dm _ _ [l]          = Leaf l
+dm d n (l:ls)       = Node t1 t2
+                        where 
+                            l1 = ind_all (argmin (fmap (dm_vec d n l) ls)) ls
+                            l2 = ((l:ls) Data.List.\\ l1)
 
-                            l1 = ind_all (argmin (map (dm_vec d n l) ls)) ls
-                            l2 = ((l:ls) \\ l1)
+                            t1 = dm d n l1
+                            t2 = dm d n l2
 
 newick :: [String] -> Int -> Tree -> String
 newick name_map n t = let ('(':str) = (newick' t) in "(" ++ (name_map !! (n - 1)) ++ "," ++ str ++ ";"
@@ -59,4 +56,25 @@ newick name_map n t = let ('(':str) = (newick' t) in "(" ++ (name_map !! (n - 1)
         newick' :: Tree->String
         newick' (Leaf l)        = name_map !! l
         newick' (Node l r)    = "(" ++ (newick' l) ++ "," ++ (newick' r) ++ ")"
+
+
+
+
+-- first arg sorted from smaller depth -> larger
+join_subtrees :: [Tree] -> Tree
+join_subtrees [] = Error
+join_subtrees [t] = t
+join_subtrees (x:xs) = Node x (join_subtrees xs) 
+
+randomized_dm :: [[Double]] -> Int -> [Int] -> Tree
+randomized_dm _ _ [l] = Leaf l
+randomized_dm d n (l:ls) = join_subtrees (fmap (randomized_dm d n) ((fmap snd dm_preimage) ++ [[l]]))
+        where dm_preimage = toAscList ( fromListWith (++) (zip cod dom))
+              cod = fmap (dm_vec d n l) ls
+              dom = fmap (\x -> [x]) ls
+
+
+
+
+
 

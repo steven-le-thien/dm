@@ -3,8 +3,9 @@ module Lib
     ) where
 
 import Data.List 
-import Data.Map 
+import Data.Map hiding (take, drop)
 import Control.Monad
+import System.Random
 
 eps = 0.0001
 
@@ -57,21 +58,40 @@ newick name_map n t = let ('(':str) = (newick' t) in "(" ++ (name_map !! (n - 1)
         newick' (Leaf l)        = name_map !! l
         newick' (Node l r)    = "(" ++ (newick' l) ++ "," ++ (newick' r) ++ ")"
 
+shuffle :: [Int] -> IO [Int]
+shuffle [] = return []
+shuffle (x:xs) = getStdRandom ( uniformR (0, (length (x:xs)) - 1)) >>= (\a -> return (swap 0 a (x:xs)))
 
-
+--stole from https://stackoverflow.com/questions/30551033/swap-two-elements-in-a-list-by-its-indices
+swap :: Int -> Int -> [Int] -> [Int]
+swap a b list   | a == b    = list
+                |otherwise  = list1 ++ [list !! b] ++ list2 ++ [list !! a] ++ list3
+    where   list1 = take a list;
+            list2 = drop (succ a) (take b list);
+            list3 = drop (succ b) list
 
 -- first arg sorted from smaller depth -> larger
-join_subtrees :: [Tree] -> Tree
-join_subtrees [] = Error
+join_subtrees :: [IO Tree] -> IO Tree
+join_subtrees [] = return Error
 join_subtrees [t] = t
-join_subtrees (x:xs) = Node x (join_subtrees xs) 
+join_subtrees (t:tt) = do
+                    tt' <- join_subtrees tt
+                    t' <- t
+                    return (Node t' tt')
 
-randomized_dm :: [[Double]] -> Int -> [Int] -> Tree
-randomized_dm _ _ [l] = Leaf l
-randomized_dm d n (l:ls) = join_subtrees (fmap (randomized_dm d n) ((fmap snd dm_preimage) ++ [[l]]))
-        where dm_preimage = toAscList ( fromListWith (++) (zip cod dom))
-              cod = fmap (dm_vec d n l) ls
-              dom = fmap (\x -> [x]) ls
+randomized_dm :: [[Double]] -> Int -> IO [Int] -> IO Tree
+randomized_dm d n llio = do
+    (l:ls) <- llio
+    let cod = fmap (dm_vec d n l) ls
+    let dom = fmap (\x -> [x]) ls
+    let dm_preimage = toAscList ( fromListWith (++) (zip cod dom))
+    if  length ls == 0
+        then return (Leaf l)
+        else do
+            if length dm_preimage + 2 > (floor . logBase 2 . fromIntegral) (length (l:ls))
+                then join_subtrees (fmap (randomized_dm d n) ((Data.List.map (return . snd) dm_preimage) ++ [return [l]]))
+                else randomized_dm d n (shuffle (l:ls))
+
 
 
 

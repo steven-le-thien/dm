@@ -60,7 +60,7 @@ newick name_map n t = let ('(':str) = (newick' t) in "(" ++ (name_map !! (n - 1)
 
 shuffle :: [Int] -> IO [Int]
 shuffle [] = return []
-shuffle (x:xs) = getStdRandom ( uniformR (0, (length (x:xs)) - 1)) >>= (\a -> return (swap 0 a (x:xs)))
+shuffle (x:xs) = getStdRandom (uniformR (0, (length (x:xs)) - 1)) >>= (\a -> return (swap 0 a (x:xs)))
 
 --stole from https://stackoverflow.com/questions/30551033/swap-two-elements-in-a-list-by-its-indices
 swap :: Int -> Int -> [Int] -> [Int]
@@ -74,24 +74,22 @@ swap a b list   | a == b    = list
 join_subtrees :: [IO Tree] -> IO Tree
 join_subtrees [] = return Error
 join_subtrees [t] = t
-join_subtrees (t:tt) = do
-                    tt' <- join_subtrees tt
-                    t' <- t
-                    return (Node t' tt')
+join_subtrees (t:tt) = (join_subtrees tt) >>= (\tt' -> (t >>= (\t' -> return (Node t' tt'))))
 
 randomized_dm :: [[Double]] -> Int -> IO [Int] -> IO Tree
 randomized_dm d n llio = do
     (l:ls) <- llio
     let cod = fmap (dm_vec d n l) ls
-    let dom = fmap (\x -> [x]) ls
-    let dm_preimage = toAscList ( fromListWith (++) (zip cod dom))
-    if  length ls == 0
-        then return (Leaf l)
-        else do
-            if length dm_preimage + 2 > (floor . logBase 2 . fromIntegral) (length (l:ls))
-                then join_subtrees (fmap (randomized_dm d n) ((Data.List.map (return . snd) dm_preimage) ++ [return [l]]))
-                else randomized_dm d n (shuffle (l:ls))
+        dom = fmap (\x -> [x]) ls
+        dm_map_sum = toAscList ( fromListWith (++) (zip cod dom))
+        dm_preimage = (Data.List.map (return . snd) dm_map_sum) ++ [return [l]]
+        thresh = (floor . logBase 2 . fromIntegral) (length (l:ls)) 
 
+        result 
+            | length ls == 0                = return (Leaf l)
+            | length dm_preimage >= thresh  = join_subtrees (fmap (randomized_dm d n) dm_preimage)
+            | otherwise                     = randomized_dm d n (shuffle (l:ls))
+    result 
 
 
 

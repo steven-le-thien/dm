@@ -12,7 +12,7 @@ import           Data.Map                hiding ( take
 import           Control.Monad
 import           System.Random
 
-eps = 0.0001
+eps = 0.75
 
 -- Tree ADT
 data Tree = Leaf Int | Node Tree Tree | Error deriving Show
@@ -20,19 +20,19 @@ data Tree = Leaf Int | Node Tree Tree | Error deriving Show
 argmin :: [Double] -> [Int]
 argmin []  = []
 argmin [x] = [0]
-argmin (x : xs) =
-  let (m : ms) = argmin xs
-      min_xs   = xs !! m
-  in  if abs (x - min_xs) < eps
-        then ((+ 1) <$> (m : ms)) ++ [0]
-        else if x - min_xs < -eps then [0] else ((+ 1) <$> (m : ms))
+argmin (x : xs) | abs (x - min_xs) < eps = ((+ 1) <$> (m : ms)) ++ [0]
+                | x - min_xs < -eps      = [0]
+                | otherwise              = ((+ 1) <$> (m : ms))
+ where
+  (m : ms) = argmin xs
+  min_xs   = xs !! m
 
 distMat :: Int -> IO ([[Double]], [String])
 distMat 0 = return ([], [])
 distMat x = do
   l <- getLine
   let (name : ws) = words l
-  let v           = read <$> ws
+      v           = read <$> ws
   (next_v, next_name) <- distMat (x - 1)
   return ((v : next_v), (name : next_name))
 
@@ -64,43 +64,43 @@ newick name_map n t =
   newick' (Node l r) = "(" ++ (newick' l) ++ "," ++ (newick' r) ++ ")"
 
 shuffle :: [Int] -> IO [Int]
-shuffle [] = return []
-shuffle (x : xs) =
-  getStdRandom (uniformR (0, (length (x : xs)) - 1))
-    >>= (\a -> return (swap 0 a (x : xs)))
-
---stole from https://stackoverflow.com/questions/30551033/swap-two-elements-in-a-list-by-its-indices
-swap :: Int -> Int -> [Int] -> [Int]
-swap a b list
-  | a == b    = list
-  | otherwise = list1 ++ [list !! b] ++ list2 ++ [list !! a] ++ list3
+shuffle xs = swap xs 0 <$> getStdRandom (uniformR (0, (length xs) - 1))
  where
-  list1 = take a list
-  list2 = drop (succ a) (take b list)
-  list3 = drop (succ b) list
+--stole from https://stackoverflow.com/questions/30551033/swap-two-elements-in-a-list-by-its-indices
+  swap :: [Int] -> Int -> Int -> [Int]
+  swap [] _ _ = []
+  swap list a b
+    | a == b    = list
+    | otherwise = list1 ++ [list !! b] ++ list2 ++ [list !! a] ++ list3
+   where
+    list1 = take a list
+    list2 = drop (succ a) (take b list)
+    list3 = drop (succ b) list
 
 -- first arg sorted from smaller depth -> larger
 join_subtrees :: [IO Tree] -> IO Tree
-join_subtrees []  = return Error
-join_subtrees [t] = t
-join_subtrees (t : tt) =
-  (join_subtrees tt) >>= (\tt' -> (t >>= (\t' -> return (Node t' tt'))))
+join_subtrees []       = return Error
+join_subtrees [t     ] = t
+join_subtrees (t : tt) = ((<*>) . (Node <$>)) t (join_subtrees tt)
 
 randomized_dm :: [[Double]] -> Int -> IO [Int] -> IO Tree
-randomized_dm d n llio = do
-  (l : ls) <- llio
-  let cod         = (dm_vec d n l) <$> ls
-      dom         = (\x -> [x]) <$> ls
-      dm_map_sum  = toAscList (fromListWith (++) (zip cod dom))
-      dm_preimage = ((return . snd) <$> dm_map_sum) ++ [return [l]]
-      thresh      = (floor . logBase 2 . fromIntegral) (length (l : ls))
-
-      result
-        | length ls == 0 = return (Leaf l)
-        | length dm_preimage >= thresh = join_subtrees
-          ((randomized_dm d n) <$> dm_preimage)
-        | otherwise = randomized_dm d n (shuffle (l : ls))
-  result
+randomized_dm d n llio =
+  llio
+    >>= (\(l : ls) -> case () of
+          _
+            | length ls == 0
+            -> return (Leaf l)
+            | length dm_preimage >= thresh
+            -> join_subtrees $ randomized_dm d n <$> dm_preimage
+            | otherwise
+            -> randomized_dm d n (shuffle (l : ls))
+           where
+            cod         = dm_vec d n l <$> ls
+            dom         = return <$> ls
+            dm_map_sum  = toAscList $ fromListWith (++) (zip cod dom)
+            dm_preimage = (return . snd <$> dm_map_sum) ++ [return [l]]
+            thresh      = floor $ logBase 2 $ fromIntegral $ length (l : ls)
+        )
 
 
 

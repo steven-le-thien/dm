@@ -7,7 +7,7 @@ def main(args):
     tree = dendropy.Tree.get_from_path(src=args.input_tree_file, schema="newick")
     for e in tree.postorder_edge_iter():
         if e.length is not None:
-                e.length = 1
+                e.length = random.randint(5,10)
     for root in tree.preorder_node_iter():
         if len(root.child_edges()) == 2:
             for e in root.child_edge_iter():

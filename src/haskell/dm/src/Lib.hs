@@ -25,7 +25,7 @@ distMat 0 = return ([], [])
 distMat x = do
   l <- getLine
   let (name : ws) = words l
-      v           = (read <$> ws)
+      v           = read <$> ws
   (next_v, next_name) <- distMat (x - 1)
   return ((v : next_v), (name : next_name))
 
@@ -50,24 +50,22 @@ dm d n (l : ls) = Node t1 t2
 -- Run randomized DM algorithm on input distance matrix, number of leaves and
 -- taxa labels
 randomized_dm :: [[Double]] -> Int -> IO [Int] -> IO Tree
-randomized_dm d n llio =
-  llio
-    >>= (\(l : ls) -> case () of
-          _
-            | length ls == 0
-            -> return (Leaf l)
-            | length dm_preimage >= thresh - 2
-            -> join_subtrees $ randomized_dm d n <$> dm_preimage
-            | otherwise
-            -> randomized_dm d n (shuffle (l : ls))
-           where
-            cod        = dm_vec d n l <$> ls
-            dom        = return <$> ls
-            dm_map_sum = M.toAscList $ M.fromListWith (++) (zip cod dom)
-            dm_preimage =
-              (return . snd <$> ball_cluster dm_map_sum) ++ [return [l]]
-            thresh = floor $ logBase 2 $ fromIntegral $ length (l : ls)
-        )
+randomized_dm d n = (=<<)
+  (\(l : ls) -> case () of
+    _
+      | length ls == 0
+      -> return (Leaf l)
+      | length dm_preimage >= thresh - 2
+      -> join_subtrees $ randomized_dm d n <$> dm_preimage
+      | otherwise
+      -> randomized_dm d n $ shuffle (l : ls)
+     where
+      cod         = dm_vec d n l <$> ls
+      dom         = return <$> ls
+      dm_map_sum  = M.toAscList $ M.fromListWith (++) (zip cod dom)
+      dm_preimage = (return . snd <$> ball_cluster dm_map_sum) ++ [return [l]]
+      thresh      = floor $ logBase 2 $ fromIntegral $ length (l : ls)
+  )
 
 ----------------------------------------------------------------------
 -- Tree utilities

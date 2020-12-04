@@ -5,10 +5,8 @@ module Lib
   , randomized_dm
   ) where
 
-import           Data.List                     as L
-import           Data.Map                hiding ( take
-                                                , drop
-                                                )
+import qualified Data.List                     as L
+import qualified Data.Map                      as M
 import           Control.Monad
 import           System.Random
 
@@ -65,7 +63,7 @@ randomized_dm d n llio =
            where
             cod        = dm_vec d n l <$> ls
             dom        = return <$> ls
-            dm_map_sum = toAscList $ fromListWith (++) (zip cod dom)
+            dm_map_sum = M.toAscList $ M.fromListWith (++) (zip cod dom)
             dm_preimage =
               (return . snd <$> ball_cluster dm_map_sum) ++ [return [l]]
             thresh = floor $ logBase 2 $ fromIntegral $ length (l : ls)
